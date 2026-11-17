@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CalendarDays, Check, Copy, Download, Eye, EyeOff, FileSpreadsheet, Printer, RefreshCw, RotateCcw, ShoppingCart } from 'lucide-react';
+import { CalendarDays, Check, Copy, Download, Eye, EyeOff, FileSpreadsheet, Printer, RefreshCw, RotateCcw, ShoppingCart, Trash2, Undo2 } from 'lucide-react';
 import type { ShoppingList } from '../types';
 import { groupByCategory } from '../lib/shopping';
 import { formatAmounts } from '../lib/units';
@@ -16,6 +16,9 @@ export function ShoppingListView({
   allowDownloads,
   onToggle,
   onReset,
+  onRemove,
+  onRestore,
+  onClear,
   onRegenerate,
   onGoPlanning,
   notify,
@@ -26,17 +29,25 @@ export function ShoppingListView({
   allowDownloads: boolean;
   onToggle: (key: string) => void;
   onReset: () => void;
+  onRemove: (keys: string[]) => void;
+  onRestore: () => void;
+  onClear: () => void;
   onRegenerate: () => void;
   onGoPlanning: () => void;
   notify: (msg: string) => void;
 }) {
   const [hideDone, setHideDone] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const removedCount = list?.removed?.length ?? 0;
   const groups = useMemo(() => (list ? groupByCategory(list.items) : []), [list]);
 
   if (!list || !list.items.length) {
     return (
       <EmptyState icon={ShoppingCart} title="Pas encore de liste de courses" text="Composez votre menu dans le planning, puis cliquez sur « Générer la liste de courses » : les ingrédients sont additionnés et rangés par rayon.">
         <button className="btn-primary" onClick={onGoPlanning}><CalendarDays size={16} /> Ouvrir le planning</button>
+        {removedCount > 0 && (
+          <button className="btn-secondary" onClick={onRestore}><Undo2 size={16} /> Rétablir {removedCount} article(s) supprimé(s)</button>
+        )}
       </EmptyState>
     );
   }
@@ -98,13 +109,38 @@ export function ShoppingListView({
             <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${(done / total) * 100}%` }} />
           </div>
         </div>
-        <div className="flex gap-1">
-          <button className="btn-ghost px-3 py-1.5" onClick={() => setHideDone((v) => !v)}>
+        <div className="flex flex-wrap gap-1">
+          <button className="btn-ghost whitespace-nowrap px-3 py-1.5" onClick={() => setHideDone((v) => !v)}>
             {hideDone ? <Eye size={16} /> : <EyeOff size={16} />} {hideDone ? 'Afficher les achetés' : 'Masquer les achetés'}
           </button>
-          <button className="btn-ghost px-3 py-1.5" onClick={onReset} disabled={!done}><RotateCcw size={16} /> Tout décocher</button>
+          <button className="btn-ghost whitespace-nowrap px-3 py-1.5" onClick={onReset} disabled={!done}><RotateCcw size={16} /> Tout décocher</button>
+          <button
+            className="btn-ghost whitespace-nowrap px-3 py-1.5 hover:text-tomato"
+            onClick={() => onRemove(list.items.filter((i) => checked[i.key]).map((i) => i.key))}
+            disabled={!done}
+          >
+            <Trash2 size={16} /> Supprimer les achetés
+          </button>
+          {confirmClear ? (
+            <span className="flex items-center gap-1 text-sm">
+              Vider toute la liste ?
+              <button className="btn-ghost px-3 py-1.5" onClick={() => setConfirmClear(false)}>Non</button>
+              <button className="btn-danger px-3 py-1.5" onClick={() => { onClear(); setConfirmClear(false); }}>Vider</button>
+            </span>
+          ) : (
+            <button className="btn-ghost whitespace-nowrap px-3 py-1.5 hover:text-tomato" onClick={() => setConfirmClear(true)}><Trash2 size={16} /> Vider la liste</button>
+          )}
         </div>
       </div>
+
+      {removedCount > 0 && (
+        <div className="no-print flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-line bg-sunken px-4 py-2.5 text-sm">
+          <span className="text-muted">
+            {removedCount === 1 ? `« ${list.removed![0].name} » a été retiré de la liste.` : `${removedCount} articles ont été retirés de la liste.`}
+          </span>
+          <button className="btn-ghost px-3 py-1.5" onClick={onRestore}><Undo2 size={16} /> Rétablir</button>
+        </div>
+      )}
 
       <div className="columns-1 gap-4 md:columns-2 xl:columns-3 [&>*]:mb-4">
         {groups.map(([cat, items]) => {
@@ -122,8 +158,8 @@ export function ShoppingListView({
                 {visible.map((item) => {
                   const isDone = !!checked[item.key];
                   return (
-                    <li key={item.key}>
-                      <label className="flex cursor-pointer items-start gap-3 px-4 py-3 transition hover:bg-sunken/60">
+                    <li key={item.key} className="flex items-stretch transition hover:bg-sunken/60">
+                      <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3 py-3 pl-4 pr-2">
                         <input type="checkbox" className="peer sr-only" checked={isDone} onChange={() => onToggle(item.key)} />
                         <span
                           className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition peer-focus-visible:ring-2 peer-focus-visible:ring-accent ${
@@ -141,6 +177,14 @@ export function ShoppingListView({
                           <span className="block truncate text-xs text-muted">{item.sources.join(' · ')}</span>
                         </span>
                       </label>
+                      <button
+                        className="icon-btn no-print mr-2 self-center hover:text-tomato"
+                        onClick={() => onRemove([item.key])}
+                        aria-label={`Supprimer ${item.name} de la liste`}
+                        title="Supprimer de la liste"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </li>
                   );
                 })}

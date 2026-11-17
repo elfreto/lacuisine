@@ -66,6 +66,8 @@ export interface ShoppingList {
   signature: string;
   mealCount: number;
   items: ShoppingItem[];
+  /** Articles retirés à la main : ils ne reviennent pas quand la liste est régénérée. */
+  removed?: ShoppingItem[];
 }
 
 export type Tab = 'recettes' | 'planning' | 'courses' | 'reserve';
