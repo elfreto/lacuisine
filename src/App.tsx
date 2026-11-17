@@ -4,7 +4,7 @@ import { useLocalStorage } from './lib/storage';
 import { uid } from './lib/id';
 import { normalize } from './lib/text';
 import { generateShoppingList, planSignature } from './lib/shopping';
-import { isLow, isReserveKey, mergeOfae, ofaeReserve, reserveToShopping, round, toBuyOf } from './lib/reserve';
+import { isLow, isReserveKey, ofaeReserve, reserveToShopping, round, syncOfae, toBuyOf } from './lib/reserve';
 import { sampleRecipes } from './data/sampleRecipes';
 import { Header } from './components/Header';
 import { RecipeList } from './components/RecipeList';
@@ -36,7 +36,7 @@ const previewSeed = () => {
   ];
   return { recipes, meals, reserve: ofaeReserve() };
 };
-const seed = IS_PREVIEW ? previewSeed() : { recipes: [] as Recipe[], meals: [] as PlannedMeal[], reserve: [] as ReserveItem[] };
+const seed = IS_PREVIEW ? previewSeed() : { recipes: [] as Recipe[], meals: [] as PlannedMeal[], reserve: ofaeReserve() };
 
 type Dialog =
   | { kind: 'form'; recipe?: Recipe }
@@ -52,6 +52,15 @@ export default function App() {
   const [checked, setChecked] = useLocalStorage<Record<string, boolean>>('checked', {});
   const [reserve, setReserve] = useLocalStorage<ReserveItem[]>('reserve', seed.reserve);
   const [reserveSel, setReserveSel] = useLocalStorage<Record<string, boolean>>('reserveSelected', {});
+  // La réserve se limite aux 36 articles OFAE : tout autre article enregistré est retiré au chargement.
+  useEffect(() => {
+    const synced = syncOfae(reserve);
+    if (JSON.stringify(synced) !== JSON.stringify(reserve)) setReserve(synced);
+    const ids = new Set(synced.map((i) => i.id));
+    setReserveSel((sel) => Object.fromEntries(Object.entries(sel).filter(([id]) => ids.has(id))));
+    setList((l) => (l ? { ...l, items: l.items.filter((i) => !isReserveKey(i.key) || ids.has(i.key.slice('reserve:'.length))) } : l));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Mode clair par défaut, quel que soit le réglage de l'appareil ; bouton dans l'en-tête pour basculer.
   const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('theme', 'light');
   useEffect(() => {
@@ -139,16 +148,11 @@ export default function App() {
   const remaining = list ? list.items.filter((i) => !checked[i.key]).length : 0;
   // --- Réserve de survie ----------------------------------------------------
   const saveReserveItem = (item: ReserveItem) => {
-    setReserve((l) => (l.some((x) => x.id === item.id) ? l.map((x) => (x.id === item.id ? item : x)) : [...l, item]));
+    setReserve((l) => l.map((x) => (x.id === item.id ? item : x)));
     notify(`« ${item.name} » enregistré`);
   };
   const updateReserveItem = (id: string, patch: Partial<ReserveItem>) =>
     setReserve((l) => l.map((x) => (x.id === id ? { ...x, ...patch } : x)));
-  const deleteReserveItem = (item: ReserveItem) => {
-    setReserve((l) => l.filter((x) => x.id !== item.id));
-    setReserveSel(({ [item.id]: _, ...rest }) => rest);
-    notify(`« ${item.name} » supprimé de la réserve`);
-  };
   const selectReserve = (ids: string[], value: boolean) =>
     setReserveSel((sel) => {
       const next = { ...sel };
@@ -174,7 +178,6 @@ export default function App() {
     notify(`Stock mis à jour pour ${items.length} article(s)`);
   };
   const lowCount = reserve.filter(isLow).length;
-  const ofaeMissing = useMemo(() => mergeOfae(reserve).added, [reserve]);
 
   const plannedIds = useMemo(() => new Set(validMeals.map((m) => m.recipeId)), [validMeals]);
 
@@ -229,18 +232,11 @@ export default function App() {
             selected={reserveSel}
             onSave={saveReserveItem}
             onUpdate={updateReserveItem}
-            onDelete={deleteReserveItem}
             onToggle={(id) => selectReserve([id], !reserveSel[id])}
             onSelect={selectReserve}
             onClearSelection={() => setReserveSel({})}
             onSendToList={sendReserveToList}
             onRestock={restockReserve}
-            ofaeMissing={ofaeMissing}
-            onLoadOfae={() => {
-              const { items, added } = mergeOfae(reserve);
-              setReserve(items);
-              notify(`${added} article(s) de la liste OFAE ajouté(s) : saisissez votre stock`);
-            }}
           />
         )}
       </main>

@@ -25,7 +25,7 @@ npm run build:single # un seul fichier HTML autonome dans dist-single/
   compatibles (g/kg, ml/cl/l, c. à soupe/c. à café), classement par rayon, cases à cocher persistantes, détection
   d'un menu modifié, export presse-papiers / .txt / Excel et impression.
 
-- **Réserve de survie** : liste de l'OFAE (Approvisionnement économique du pays) en deux parties, « Biens de consommation courante » (avec sous-groupes) et « Objets usuels », chargeable ou à compléter en un clic. Pour chaque article :
+- **Réserve de survie** : uniquement les 36 articles de la liste de l'OFAE (Approvisionnement économique du pays), en deux parties : « Biens de consommation courante » (avec sous-groupes) et « Objets usuels ». On ne peut ni ajouter ni supprimer d'article ; tout autre article enregistré est retiré au chargement, les saisies des articles OFAE sont conservées. Pour chaque article :
   désignation, unité, quantité prévue, quantité en stock, quantité à acheter (prévu − stock par défaut,
   modifiable article par article) et seuil d'alerte. Les articles dont le stock passe sous le seuil sont signalés
   (bandeau, badge rouge sur l'onglet). Sélection individuelle ou par partie, puis « Ajouter à la liste de courses »
