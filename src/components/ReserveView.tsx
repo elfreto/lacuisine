@@ -1,11 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Check, ListPlus, Minus, PackageCheck, Pencil, Plus, RotateCcw, ShieldCheck, ShoppingCart, Trash2, X } from 'lucide-react';
-import { CATEGORIES, RESERVE_SECTIONS, type Category, type ReserveItem, type ReserveSection } from '../types';
+import { AlertTriangle, Check, Minus, PackageCheck, Pencil, Plus, RotateCcw, ShieldCheck, ShoppingCart, X } from 'lucide-react';
+import { CATEGORIES, RESERVE_SECTIONS, type Category, type ReserveItem } from '../types';
 import { isLow, round, suggestedToBuy, toBuyOf } from '../lib/reserve';
 import { COMMON_UNITS } from '../lib/units';
 import { formatNumber } from '../lib/text';
-import { uid } from '../lib/id';
-import { EmptyState, Modal } from './ui';
+import { Modal } from './ui';
 
 const parse = (s: string): number => {
   const n = Number(s.replace(',', '.').trim());
@@ -88,64 +87,30 @@ export function ReserveView({
   selected,
   onSave,
   onUpdate,
-  onDelete,
   onToggle,
   onSelect,
   onClearSelection,
   onSendToList,
   onRestock,
-  onLoadOfae,
-  ofaeMissing,
 }: {
   items: ReserveItem[];
   selected: Record<string, boolean>;
   onSave: (item: ReserveItem) => void;
   onUpdate: (id: string, patch: Partial<ReserveItem>) => void;
-  onDelete: (item: ReserveItem) => void;
   onToggle: (id: string) => void;
   onSelect: (ids: string[], value: boolean) => void;
   onClearSelection: () => void;
   onSendToList: (items: ReserveItem[]) => void;
   onRestock: (items: ReserveItem[]) => void;
-  onLoadOfae: () => void;
-  ofaeMissing: number;
 }) {
-  const [editing, setEditing] = useState<ReserveItem | 'new' | null>(null);
-  const [newSection, setNewSection] = useState<ReserveSection>('vivres');
+  const [editing, setEditing] = useState<ReserveItem | null>(null);
   const low = useMemo(() => items.filter(isLow), [items]);
   const chosen = items.filter((i) => selected[i.id]);
   const chosenToBuy = chosen.filter((i) => toBuyOf(i) > 0);
 
-  const openNew = (section: ReserveSection) => {
-    setNewSection(section);
-    setEditing('new');
-  };
-
   const dialog = editing && (
-    <ReserveForm
-      initial={editing === 'new' ? undefined : editing}
-      section={newSection}
-      onSave={(i) => { onSave(i); setEditing(null); }}
-      onDelete={editing === 'new' ? undefined : () => { onDelete(editing); setEditing(null); }}
-      onClose={() => setEditing(null)}
-    />
+    <ReserveForm initial={editing} onSave={(i) => { onSave(i); setEditing(null); }} onClose={() => setEditing(null)} />
   );
-
-  if (!items.length) {
-    return (
-      <>
-        <EmptyState
-          icon={ShieldCheck}
-          title="Votre réserve de survie est vide"
-          text="Partez de la liste recommandée par l’OFAE (biens de consommation courante et objets usuels) ou ajoutez vos propres articles, avec la quantité prévue, le stock actuel et un seuil d’alerte."
-        >
-          <button className="btn-primary" onClick={() => openNew('vivres')}><Plus size={16} /> Ajouter un article</button>
-          <button className="btn-secondary" onClick={onLoadOfae}>Charger la liste OFAE</button>
-        </EmptyState>
-        {dialog}
-      </>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-5 pb-20">
@@ -153,16 +118,8 @@ export function ReserveView({
         <div>
           <h2 className="font-display text-2xl font-bold">Réserve de survie</h2>
           <p className="text-sm text-muted">
-            {items.length} article{items.length > 1 ? 's' : ''} · cochez ceux à racheter et ajustez la quantité à acheter
+            Les {items.length} articles recommandés par l’OFAE · saisissez votre stock, cochez ce qu’il faut racheter
           </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {ofaeMissing > 0 && (
-            <button className="btn-secondary" onClick={onLoadOfae} title="Ajoute les articles de la liste OFAE qui manquent">
-              <ListPlus size={16} /> Compléter avec la liste OFAE ({ofaeMissing})
-            </button>
-          )}
-          <button className="btn-primary" onClick={() => openNew('vivres')}><Plus size={16} /> Ajouter un article</button>
         </div>
       </div>
 
@@ -200,7 +157,6 @@ export function ReserveView({
                 <h3 className="font-display text-lg font-bold">{sec.label}</h3>
                 <p className="text-xs text-muted">{sec.hint}</p>
               </div>
-              <button className="btn-ghost px-3 py-1.5" onClick={() => openNew(sec.id)}><Plus size={16} /> Ajouter</button>
             </header>
 
             {rows.length === 0 ? (
@@ -356,105 +312,56 @@ function ReserveRow({
   );
 }
 
-function ReserveForm({
-  initial,
-  section,
-  onSave,
-  onDelete,
-  onClose,
-}: {
-  initial?: ReserveItem;
-  section: ReserveSection;
-  onSave: (item: ReserveItem) => void;
-  onDelete?: () => void;
-  onClose: () => void;
-}) {
-  const [name, setName] = useState(initial?.name ?? '');
-  const [note, setNote] = useState(initial?.note ?? '');
-  const [group, setGroup] = useState(initial?.group ?? '');
-  const [sec, setSec] = useState<ReserveSection>(initial?.section ?? section);
-  const [unit, setUnit] = useState(initial?.unit ?? 'pièce(s)');
-  const [planned, setPlanned] = useState(String(initial?.planned ?? ''));
-  const [stock, setStock] = useState(String(initial?.stock ?? 0));
-  const [threshold, setThreshold] = useState(String(initial?.threshold ?? ''));
-  const [category, setCategory] = useState<Category>(initial?.category ?? (section === 'vivres' ? 'Épicerie & Condiments' : 'Autres'));
-  const [confirmDelete, setConfirmDelete] = useState(false);
+function ReserveForm({ initial, onSave, onClose }: { initial: ReserveItem; onSave: (item: ReserveItem) => void; onClose: () => void }) {
+  const [unit, setUnit] = useState(initial.unit);
+  const [planned, setPlanned] = useState(formatNumber(initial.planned));
+  const [stock, setStock] = useState(formatNumber(initial.stock));
+  const [threshold, setThreshold] = useState(formatNumber(initial.threshold));
+  const [category, setCategory] = useState<Category>(initial.category);
   const [tried, setTried] = useState(false);
 
   const num = (s: string) => (s.trim() === '' ? 0 : parse(s));
   const values = { planned: num(planned), stock: num(stock), threshold: num(threshold) };
-  const invalid = !name.trim() || Object.values(values).some(Number.isNaN);
+  const invalid = Object.values(values).some(Number.isNaN);
 
   const submit = () => {
     setTried(true);
     if (invalid) return;
-    const changedQty = initial && (initial.planned !== values.planned || initial.stock !== values.stock);
-    onSave({
-      id: initial?.id ?? uid(),
-      name: name.trim(),
-      note: note.trim() || undefined,
-      group: group.trim() || undefined,
-      section: sec,
-      unit: unit.trim(),
-      ...values,
-      toBuy: changedQty ? undefined : initial?.toBuy,
-      category,
-    });
+    const changedQty = initial.planned !== values.planned || initial.stock !== values.stock;
+    onSave({ ...initial, unit: unit.trim(), ...values, toBuy: changedQty ? undefined : initial.toBuy, category });
   };
 
   const err = (bad: boolean) => (tried && bad ? 'border-tomato focus:border-tomato focus:ring-tomato/25' : '');
 
   return (
     <Modal
-      title={initial ? 'Modifier l’article' : 'Nouvel article de réserve'}
+      title={initial.name}
       onClose={onClose}
       footer={
         <>
-          {onDelete && (
-            confirmDelete ? (
-              <button className="btn-danger mr-auto" onClick={onDelete}><Trash2 size={16} /> Confirmer la suppression</button>
-            ) : (
-              <button className="btn-ghost mr-auto text-tomato hover:text-tomato" onClick={() => setConfirmDelete(true)}><Trash2 size={16} /> Supprimer</button>
-            )
-          )}
           <button className="btn-secondary" onClick={onClose}>Annuler</button>
           <button className="btn-primary" onClick={submit}>Enregistrer</button>
         </>
       }
     >
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-        <div className="sm:col-span-2">
-          <label className="label" htmlFor="r-name">Désignation</label>
-          <input id="r-name" className={`field ${err(!name.trim())}`} value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex. Eau potable" autoFocus />
+        {initial.note && <p className="text-sm text-muted sm:col-span-2">{initial.note}</p>}
+        <div>
+          <label className="label" htmlFor="r-planned">Quantité prévue</label>
+          <input id="r-planned" inputMode="decimal" className={`field ${err(Number.isNaN(values.planned))}`} value={planned} onChange={(e) => setPlanned(e.target.value)} placeholder="0" />
+        </div>
+        <div>
+          <label className="label" htmlFor="r-stock">Quantité en stock</label>
+          <input id="r-stock" inputMode="decimal" className={`field ${err(Number.isNaN(values.stock))}`} value={stock} onChange={(e) => setStock(e.target.value)} placeholder="0" autoFocus />
         </div>
         <div className="sm:col-span-2">
-          <label className="label" htmlFor="r-note">Précision (facultatif)</label>
-          <input id="r-note" className="field" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ex. bouteilles de 1,5 litre" />
-        </div>
-        <div className="sm:col-span-2">
-          <span className="label">Partie de la réserve</span>
-          <div className="grid grid-cols-2 gap-2">
-            {RESERVE_SECTIONS.map((s) => (
-              <button
-                type="button"
-                key={s.id}
-                onClick={() => setSec(s.id)}
-                aria-pressed={sec === s.id}
-                className={`rounded-xl border px-3 py-2 text-left text-sm transition ${sec === s.id ? 'border-accent bg-accent-soft font-semibold' : 'border-line hover:bg-sunken'}`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label" htmlFor="r-group">Sous-groupe (facultatif)</label>
-          <input id="r-group" className="field" list="r-groups" value={group} onChange={(e) => setGroup(e.target.value)} placeholder="Ex. Articles d’hygiène" />
+          <label className="label" htmlFor="r-threshold">Seuil d’alerte</label>
+          <input id="r-threshold" inputMode="decimal" className={`field ${err(Number.isNaN(values.threshold))}`} value={threshold} onChange={(e) => setThreshold(e.target.value)} placeholder="Vide ou 0 : pas d’alerte" />
+          <p className="mt-1.5 text-xs text-muted">Une alerte s’affiche dès que le stock descend sous ce seuil.</p>
         </div>
         <div>
           <label className="label" htmlFor="r-unit">Unité</label>
           <input id="r-unit" className="field" list="r-units" value={unit} onChange={(e) => setUnit(e.target.value)} />
-          <datalist id="r-groups">{['Alimentation', 'Articles d’hygiène', 'Articles médicaux', 'Autres'].map((g) => <option key={g} value={g} />)}</datalist>
           <datalist id="r-units">{COMMON_UNITS.map((u) => <option key={u} value={u} />)}</datalist>
         </div>
         <div>
@@ -462,19 +369,6 @@ function ReserveForm({
           <select id="r-cat" className="field" value={category} onChange={(e) => setCategory(e.target.value as Category)}>
             {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
           </select>
-        </div>
-        <div>
-          <label className="label" htmlFor="r-planned">Quantité prévue</label>
-          <input id="r-planned" inputMode="decimal" className={`field ${err(Number.isNaN(values.planned))}`} value={planned} onChange={(e) => setPlanned(e.target.value)} placeholder="0" />
-        </div>
-        <div>
-          <label className="label" htmlFor="r-stock">Quantité en stock</label>
-          <input id="r-stock" inputMode="decimal" className={`field ${err(Number.isNaN(values.stock))}`} value={stock} onChange={(e) => setStock(e.target.value)} placeholder="0" />
-        </div>
-        <div className="sm:col-span-2">
-          <label className="label" htmlFor="r-threshold">Seuil d’alerte</label>
-          <input id="r-threshold" inputMode="decimal" className={`field ${err(Number.isNaN(values.threshold))}`} value={threshold} onChange={(e) => setThreshold(e.target.value)} placeholder="Vide ou 0 : pas d’alerte" />
-          <p className="mt-1.5 text-xs text-muted">Une alerte s’affiche dès que le stock descend sous ce seuil.</p>
         </div>
         <button type="submit" className="hidden" />
       </form>

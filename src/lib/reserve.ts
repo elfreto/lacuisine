@@ -1,6 +1,5 @@
 import type { Category, ReserveItem, ReserveSection, ShoppingItem } from '../types';
 import { normalize } from './text';
-import { uid } from './id';
 import { toAmount } from './units';
 
 /** Différence entre prévu et stock, jamais négative. */
@@ -82,8 +81,11 @@ const OFAE_OBJECTS: Seed[] = [
   ['Ouvre-boîte', 'Alternative : couteau de poche', 1, 'pièce(s)', 'Autres'],
 ];
 
+/** Identifiant stable dérivé de la désignation : les saisies survivent aux mises à jour de la liste. */
+const ofaeId = (name: string): string => 'ofae-' + normalize(name).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+
 const make = ([name, note, planned, unit, category]: Seed, section: ReserveSection, group?: string): ReserveItem => ({
-  id: uid(),
+  id: ofaeId(name),
   name,
   note: note || undefined,
   group,
@@ -95,15 +97,26 @@ const make = ([name, note, planned, unit, category]: Seed, section: ReserveSecti
   category,
 });
 
-/** Réserve recommandée par l'OFAE, prête à remplir avec le stock réel. */
+/** Les 36 articles recommandés par l'OFAE, stock à 0. */
 export const ofaeReserve = (): ReserveItem[] => [
   ...Object.entries(OFAE).flatMap(([group, seeds]) => seeds.map((s) => make(s, 'vivres', group))),
   ...OFAE_OBJECTS.map((s) => make(s, 'materiel')),
 ];
 
-/** Ajoute les articles de la liste OFAE absents (même désignation, accents et casse ignorés). */
-export const mergeOfae = (items: ReserveItem[]): { items: ReserveItem[]; added: number } => {
-  const known = new Set(items.map((i) => normalize(i.name)));
-  const extra = ofaeReserve().filter((i) => !known.has(normalize(i.name)));
-  return { items: [...items, ...extra], added: extra.length };
+/**
+ * La réserve contient exactement les articles OFAE : on reprend les saisies déjà faites
+ * (prévu, stock, seuil, à acheter, unité, rayon) pour les articles reconnus, le reste est retiré.
+ */
+export const syncOfae = (stored: ReserveItem[]): ReserveItem[] => {
+  const byKey = new Map<string, ReserveItem>();
+  for (const i of stored) {
+    byKey.set(i.id, i);
+    byKey.set(ofaeId(i.name), i);
+  }
+  return ofaeReserve().map((base) => {
+    const old = byKey.get(base.id);
+    if (!old) return base;
+    const { planned, stock, threshold, toBuy, unit, category } = old;
+    return { ...base, planned, stock, threshold, toBuy, unit, category };
+  });
 };
