@@ -4,18 +4,22 @@ import type { Recipe } from '../types';
 import { scaleRatio } from '../lib/shopping';
 import { formatDuration, formatNumber } from '../lib/text';
 import { formatIngredientQuantity } from '../lib/units';
-import { CategoryIcon, Modal, Stepper } from './ui';
+import { CategoryIcon, Modal, StarRating, Stepper } from './ui';
 
 export function RecipeDetail({
   recipe,
   onClose,
   onEdit,
   onPlan,
+  rating,
+  onRate,
 }: {
   recipe: Recipe;
   onClose: () => void;
   onEdit: () => void;
   onPlan: (people: number) => void;
+  rating?: number;
+  onRate: (rating: number | undefined) => void;
 }) {
   const [people, setPeople] = useState(recipe.servings);
   const ratio = scaleRatio(people, recipe.servings);
@@ -34,6 +38,10 @@ export function RecipeDetail({
       }
     >
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+        <span className="flex items-center gap-2">
+          <StarRating value={rating} onChange={onRate} size={20} label="Noter la recette" />
+          <span className="text-xs">{rating ? `${rating}/5` : 'Pas encore notée'}</span>
+        </span>
         <span className="flex items-center gap-1.5"><Users size={16} /> Recette de base : {recipe.servings} portion(s)</span>
         {formatDuration(recipe.prepTime) && <span className="flex items-center gap-1.5"><Clock size={16} /> {formatDuration(recipe.prepTime)}</span>}
       </div>

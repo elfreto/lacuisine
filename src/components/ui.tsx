@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
-import { Minus, Plus, X, type LucideIcon } from 'lucide-react';
+import { Minus, Plus, Star, X, type LucideIcon } from 'lucide-react';
 import type { Category } from '../types';
 import { CATEGORY_META } from '../lib/categories';
 
@@ -134,5 +134,47 @@ export function Toast({ message }: { message: string | null }) {
     >
       <div className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-bg shadow-lg">{message}</div>
     </div>
+  );
+}
+
+/** Note de 1 à 5 étoiles. Cliquer sur l'étoile déjà choisie retire la note. */
+export function StarRating({
+  value,
+  onChange,
+  size = 18,
+  label = 'Note',
+}: {
+  value?: number;
+  onChange?: (v: number | undefined) => void;
+  size?: number;
+  label?: string;
+}) {
+  const v = value ?? 0;
+  if (!onChange) {
+    return (
+      <span className="inline-flex items-center gap-0.5" aria-label={v ? `${label} : ${v} sur 5` : 'Pas encore notée'} role="img">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Star key={n} size={size} className={n <= v ? 'fill-sun text-sun' : 'text-line'} />
+        ))}
+      </span>
+    );
+  }
+  return (
+    <span className="group/stars inline-flex items-center" role="radiogroup" aria-label={label}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          role="radio"
+          aria-checked={n === v}
+          aria-label={`${n} étoile${n > 1 ? 's' : ''}`}
+          title={n === v ? 'Retirer la note' : `${n} sur 5`}
+          onClick={(e) => { e.stopPropagation(); onChange(n === v ? undefined : n); }}
+          className="peer rounded p-0.5 transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <Star size={size} className={n <= v ? 'fill-sun text-sun' : 'text-muted/40'} />
+        </button>
+      ))}
+    </span>
   );
 }

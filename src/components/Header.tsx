@@ -1,10 +1,11 @@
-import { BookOpen, CalendarDays, ChefHat, Moon, ShieldCheck, Sun, ShoppingCart, type LucideIcon } from 'lucide-react';
+import { BookOpen, CalendarDays, ChefHat, Gift, Moon, ShieldCheck, Sun, ShoppingCart, type LucideIcon } from 'lucide-react';
 import type { Tab } from '../types';
 
 const TABS: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: 'recettes', label: 'Recettes', icon: BookOpen },
   { id: 'planning', label: 'Planning', icon: CalendarDays },
   { id: 'courses', label: 'Courses', icon: ShoppingCart },
+  { id: 'souhaits', label: 'Souhaits', icon: Gift },
   { id: 'reserve', label: 'Réserve', icon: ShieldCheck },
 ];
 
@@ -37,7 +38,7 @@ export function Header({
               <p className="hidden text-xs text-header-muted sm:block">Recettes, menus, courses et réserve</p>
             </div>
           </div>
-          <nav className="ml-auto hidden gap-1 rounded-2xl bg-white/35 p-1 md:flex dark:bg-sunken" aria-label="Sections">
+          <nav className="ml-auto hidden gap-1 rounded-2xl bg-white/35 p-1 lg:flex dark:bg-sunken" aria-label="Sections">
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -70,7 +71,7 @@ export function Header({
 
       {/* Navigation mobile en bas d'écran */}
       <nav
-        className="no-print fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-line bg-surface/95 backdrop-blur md:hidden"
+        className="no-print fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-surface/95 backdrop-blur lg:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
         aria-label="Sections"
       >

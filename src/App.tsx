@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { NO_DAY, type PlanDay, type PlannedMeal, type Recipe, type ReserveItem, type ShoppingList, type Tab } from './types';
+import { NO_DAY, type PlanDay, type PlannedMeal, type Recipe, type ReserveItem, type ShoppingList, type Tab, type WishItem } from './types';
 import { useLocalStorage } from './lib/storage';
 import { uid } from './lib/id';
 import { normalize } from './lib/text';
@@ -13,12 +13,15 @@ import { RecipeDetail } from './components/RecipeDetail';
 import { ExcelImport, type ConflictMode } from './components/ExcelImport';
 import { MealPlanner } from './components/MealPlanner';
 import { ShoppingListView } from './components/ShoppingListView';
+import { WishlistView } from './components/WishlistView';
+import { useWishes } from './lib/useWishes';
+import { isWishKey, wishesToShopping } from './lib/wishes';
 import { ReserveView } from './components/ReserveView';
 import { Toast } from './components/ui';
 
 /** Dans l'aperçu autonome, les téléchargements et l'impression sont bloqués par le navigateur hôte. */
 const IS_PREVIEW = import.meta.env.MODE === 'preview';
-const TABS: Tab[] = ['recettes', 'planning', 'courses', 'reserve'];
+const TABS: Tab[] = ['recettes', 'planning', 'courses', 'souhaits', 'reserve'];
 
 const readHash = (): Tab => {
   const h = window.location.hash.replace('#', '') as Tab;
@@ -95,6 +98,10 @@ export default function App() {
     notify(`« ${r.name} » enregistrée`);
   };
 
+  // La note ne touche pas updatedAt : noter une recette ne rend pas la liste de courses « périmée ».
+  const rateRecipe = (id: string, rating: number | undefined) =>
+    setRecipes((list) => list.map((x) => (x.id === id ? { ...x, rating } : x)));
+
   const deleteRecipe = (r: Recipe) => {
     setRecipes((list) => list.filter((x) => x.id !== r.id));
     setMeals((list) => list.filter((m) => m.recipeId !== r.id));
@@ -136,8 +143,8 @@ export default function App() {
   const validMeals = useMemo(() => meals.filter((m) => recipes.some((r) => r.id === m.recipeId)), [meals, recipes]);
   const generate = () => {
     const generated = generateShoppingList(validMeals, recipes);
-    // Les articles venus de la réserve restent dans la liste régénérée.
-    const all = [...generated.items, ...(list?.items.filter((i) => isReserveKey(i.key)) ?? [])];
+    // Les articles venus de la réserve et des souhaits restent dans la liste régénérée.
+    const all = [...generated.items, ...(list?.items.filter((i) => isReserveKey(i.key) || isWishKey(i.key)) ?? [])];
     // Les articles supprimés à la main restent retirés (avec leurs quantités mises à jour, pour pouvoir les rétablir).
     const removedKeys = new Set((list?.removed ?? []).map((i) => i.key));
     const next = { ...generated, items: all.filter((i) => !removedKeys.has(i.key)), removed: all.filter((i) => removedKeys.has(i.key)) };
@@ -201,12 +208,27 @@ export default function App() {
     notify(`Stock mis à jour pour ${items.length} article(s)`);
   };
   const lowCount = reserve.filter(isLow).length;
+  // --- Souhaits -------------------------------------------------------------
+  const wishes = useWishes();
+  const pendingWishes = wishes.wishes.filter((w) => w.status === 'pending').length;
+  const validateWishes = async (items: WishItem[]) => {
+    if (!items.length) return;
+    const ok = await wishes.validate(items.map((w) => w.id));
+    if (!ok) return;
+    const incoming = wishesToShopping(items);
+    const keys = new Set(incoming.map((i) => i.key));
+    setList((prev) => {
+      const base = prev ?? { generatedAt: Date.now(), signature: '', mealCount: 0, items: [] };
+      return { ...base, items: [...base.items.filter((i) => !keys.has(i.key)), ...incoming], removed: (base.removed ?? []).filter((i) => !keys.has(i.key)) };
+    });
+    notify(`${incoming.length} souhait(s) ajouté(s) à la liste de courses`);
+  };
 
   const plannedIds = useMemo(() => new Set(validMeals.map((m) => m.recipeId)), [validMeals]);
 
   return (
-    <div className="min-h-screen pb-28 md:pb-12">
-      <Header tab={tab} onTab={setTab} counts={{ recettes: recipes.length, planning: validMeals.length, courses: remaining, reserve: lowCount }} alerts={['reserve']} theme={theme} onTheme={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))} />
+    <div className="min-h-screen pb-28 lg:pb-12">
+      <Header tab={tab} onTab={setTab} counts={{ recettes: recipes.length, planning: validMeals.length, courses: remaining, souhaits: pendingWishes, reserve: lowCount }} alerts={['reserve']} theme={theme} onTheme={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))} />
 
       <main className="gutter mx-auto max-w-6xl pt-6 md:pt-8">
         {tab === 'recettes' && (
@@ -220,6 +242,7 @@ export default function App() {
             onEdit={(recipe) => setDialog({ kind: 'form', recipe })}
             onDelete={deleteRecipe}
             onPlan={(r) => addMeal(r.id, defaultPeople)}
+            onRate={(r, v) => rateRecipe(r.id, v)}
           />
         )}
         {tab === 'planning' && (
@@ -252,6 +275,22 @@ export default function App() {
             notify={notify}
           />
         )}
+        {tab === 'souhaits' && (
+          <WishlistView
+            wishes={wishes.wishes}
+            loading={wishes.loading}
+            error={wishes.error}
+            shared={wishes.shared}
+            onAdd={async (w) => {
+              const ok = await wishes.add(w);
+              if (ok) notify(`« ${w.name} » ajouté aux souhaits`);
+              return ok;
+            }}
+            onValidate={validateWishes}
+            onRemove={wishes.remove}
+            onRefresh={wishes.refresh}
+          />
+        )}
         {tab === 'reserve' && (
           <ReserveView
             items={reserve}
@@ -274,6 +313,8 @@ export default function App() {
           onClose={() => setDialog(null)}
           onEdit={() => setDialog({ kind: 'form', recipe: dialog.recipe })}
           onPlan={(people) => { addMeal(dialog.recipe.id, people); setDialog(null); }}
+          rating={recipes.find((x) => x.id === dialog.recipe.id)?.rating}
+          onRate={(v) => rateRecipe(dialog.recipe.id, v)}
         />
       )}
       {dialog?.kind === 'import' && (

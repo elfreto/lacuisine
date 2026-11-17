@@ -4,6 +4,7 @@ import type { ShoppingList } from '../types';
 import { groupByCategory } from '../lib/shopping';
 import { formatAmounts } from '../lib/units';
 import { isReserveKey } from '../lib/reserve';
+import { isWishKey } from '../lib/wishes';
 import { downloadText, shoppingListToText } from '../lib/exportText';
 import { CategoryIcon, EmptyState } from './ui';
 
@@ -55,7 +56,12 @@ export function ShoppingListView({
   const total = list.items.length;
   const done = list.items.filter((i) => checked[i.key]).length;
   const reserveCount = list.items.filter((i) => isReserveKey(i.key)).length;
-  const origin = [list.mealCount ? `${list.mealCount} repas` : '', reserveCount ? `${reserveCount} article${reserveCount > 1 ? 's' : ''} de réserve` : ''].filter(Boolean).join(' + ');
+  const wishCount = list.items.filter((i) => isWishKey(i.key)).length;
+  const origin = [
+    list.mealCount ? `${list.mealCount} repas` : '',
+    reserveCount ? `${reserveCount} article${reserveCount > 1 ? 's' : ''} de réserve` : '',
+    wishCount ? `${wishCount} souhait${wishCount > 1 ? 's' : ''}` : '',
+  ].filter(Boolean).join(' + ');
   const title = `Liste de courses · ${origin}`;
   const text = () => shoppingListToText(list.items, checked, title);
 

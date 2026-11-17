@@ -3,3 +3,5 @@ dist
 dist-single
 dist-preview
 *.tsbuildinfo
+.env
+.env.local

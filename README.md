@@ -31,6 +31,19 @@ npm run build:single # un seul fichier HTML autonome dans dist-single/
   (bandeau, badge rouge sur l'onglet). Sélection individuelle ou par partie, puis « Ajouter à la liste de courses »
   (les articles restent dans la liste quand on la régénère depuis le planning) ou « Marquer acheté » (stock mis à jour).
 
+- **Notes** : chaque recette se note de 1 à 5 étoiles (sur la carte ou la fiche) ; tri « Mieux notées » ; colonne `Note` reconnue à l'import Excel.
+- **Souhaits** : chacun propose ce qu'il aimerait qu'on achète (quantité, rayon, prénom, précision). « Valider la liste » envoie les souhaits en attente dans la liste de courses ; ils restent visibles dans « Déjà validés ».
+
+## Liste de souhaits partagée
+
+Les souhaits sont partagés entre tous les appareils quand `VITE_SUPABASE_URL` et `VITE_SUPABASE_KEY` sont définis
+(voir `.env.example`, table `lacuisine_souhaits`, schéma dans `supabase/souhaits.sql`). Sans ces variables, ils restent sur l'appareil.
+
+## Mise en ligne
+
+- **Vercel** : importer le dépôt sur vercel.com (le fichier `vercel.json` règle le build). Ajouter les deux variables `VITE_SUPABASE_*` dans Settings → Environment Variables.
+- **GitHub Pages** : le workflow `.github/workflows/pages.yml` publie `https://elfreto.github.io/lacuisine/` à chaque push sur `main`. Une seule fois : Settings → Pages → Source « GitHub Actions ».
+
 ## Format du fichier Excel
 
 Une ligne par ingrédient ; les lignes au même « Nom de la recette » sont regroupées (une cellule vide reprend la recette précédente).

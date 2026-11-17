@@ -29,6 +29,8 @@ export interface Recipe {
   prepTime?: number;
   instructions: string;
   ingredients: Ingredient[];
+  /** Note de 1 à 5 étoiles ; absente = pas encore notée. */
+  rating?: number;
   createdAt: number;
   updatedAt: number;
 }
@@ -70,7 +72,7 @@ export interface ShoppingList {
   removed?: ShoppingItem[];
 }
 
-export type Tab = 'recettes' | 'planning' | 'courses' | 'reserve';
+export type Tab = 'recettes' | 'planning' | 'courses' | 'reserve' | 'souhaits';
 
 /** Les deux constituantes de la réserve de survie. */
 export const RESERVE_SECTIONS = [
@@ -103,3 +105,22 @@ export interface ReserveItem {
 
 /** En-têtes du fichier Excel d'import. */
 export const EXPECTED_COLUMNS = ['Nom de la recette', 'Ingrédient', 'Quantité', 'Unité', 'Catégorie', 'Portions de base'];
+
+export type WishStatus = 'pending' | 'validated';
+
+/** Article souhaité, proposé par n'importe quel utilisateur de l'application. */
+export interface WishItem {
+  id: string;
+  name: string;
+  quantity?: number;
+  unit?: string;
+  category: Category;
+  /** Prénom de la personne qui a fait la demande. */
+  author?: string;
+  note?: string;
+  status: WishStatus;
+  createdAt: number;
+  validatedAt?: number;
+}
+
+export type NewWish = Pick<WishItem, 'name' | 'quantity' | 'unit' | 'category' | 'author' | 'note'>;
