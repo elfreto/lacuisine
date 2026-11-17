@@ -22,7 +22,7 @@ npm run build:single # un seul fichier HTML autonome dans dist-single/
 - **Planning** : menu par jour de la semaine, nombre de personnes par repas, ratio
   `personnes ÷ portions de base` affiché et appliqué à chaque ingrédient.
 - **Liste de courses** : agrégation des ingrédients identiques (pluriel et accents ignorés), conversion des unités
-  compatibles (g/kg, ml/cl/l, c. à soupe/c. à café), classement par rayon, cases à cocher persistantes, détection
+  compatibles (g/kg, ml/cl/l, c. à soupe/c. à café), classement par rayon, cases à cocher persistantes, suppression d'un article (ou de tous les articles achetés) avec possibilité de les rétablir, détection
   d'un menu modifié, export presse-papiers / .txt / Excel et impression.
 
 - **Réserve de survie** : uniquement les 36 articles de la liste de l'OFAE (Approvisionnement économique du pays), en deux parties : « Biens de consommation courante » (avec sous-groupes) et « Objets usuels ». On ne peut ni ajouter ni supprimer d'article ; tout autre article enregistré est retiré au chargement, les saisies des articles OFAE sont conservées. Pour chaque article :

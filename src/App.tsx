@@ -137,12 +137,34 @@ export default function App() {
   const generate = () => {
     const generated = generateShoppingList(validMeals, recipes);
     // Les articles venus de la réserve restent dans la liste régénérée.
-    const next = { ...generated, items: [...generated.items, ...(list?.items.filter((i) => isReserveKey(i.key)) ?? [])] };
+    const all = [...generated.items, ...(list?.items.filter((i) => isReserveKey(i.key)) ?? [])];
+    // Les articles supprimés à la main restent retirés (avec leurs quantités mises à jour, pour pouvoir les rétablir).
+    const removedKeys = new Set((list?.removed ?? []).map((i) => i.key));
+    const next = { ...generated, items: all.filter((i) => !removedKeys.has(i.key)), removed: all.filter((i) => removedKeys.has(i.key)) };
     // On garde les cases déjà cochées pour les articles toujours présents.
     setChecked((prev) => Object.fromEntries(next.items.filter((i) => prev[i.key]).map((i) => [i.key, true])));
     setList(next);
     setTab('courses');
     notify(`${next.items.length} articles dans la liste`);
+  };
+  const removeItems = (keys: string[]) => {
+    if (!list || !keys.length) return;
+    const drop = new Set(keys);
+    const gone = list.items.filter((i) => drop.has(i.key));
+    setList({ ...list, items: list.items.filter((i) => !drop.has(i.key)), removed: [...(list.removed ?? []), ...gone] });
+    setChecked((c) => Object.fromEntries(Object.entries(c).filter(([k]) => !drop.has(k))));
+    notify(gone.length === 1 ? `« ${gone[0].name} » retiré de la liste` : `${gone.length} articles retirés de la liste`);
+  };
+  const restoreRemoved = () => {
+    if (!list?.removed?.length) return;
+    const back = list.removed;
+    setList({ ...list, items: [...list.items, ...back], removed: [] });
+    notify(`${back.length} article(s) rétabli(s)`);
+  };
+  const clearList = () => {
+    setList(null);
+    setChecked({});
+    notify('Liste de courses vidée');
   };
   const stale = !!list && list.signature !== planSignature(validMeals, recipes);
   const remaining = list ? list.items.filter((i) => !checked[i.key]).length : 0;
@@ -165,7 +187,8 @@ export default function App() {
     setList((prev) => {
       const base = prev ?? { generatedAt: Date.now(), signature: '', mealCount: 0, items: [] };
       // Un article déjà envoyé est remplacé par sa nouvelle quantité.
-      return { ...base, items: [...base.items.filter((i) => !keys.has(i.key)), ...incoming] };
+      // Un article renvoyé depuis la réserve sort des articles supprimés.
+      return { ...base, items: [...base.items.filter((i) => !keys.has(i.key)), ...incoming], removed: (base.removed ?? []).filter((i) => !keys.has(i.key)) };
     });
     setChecked((c) => Object.fromEntries(Object.entries(c).filter(([k]) => !keys.has(k))));
     setReserveSel({});
@@ -221,6 +244,9 @@ export default function App() {
             allowDownloads={!IS_PREVIEW}
             onToggle={(key) => setChecked((c) => ({ ...c, [key]: !c[key] }))}
             onReset={() => setChecked({})}
+            onRemove={removeItems}
+            onRestore={restoreRemoved}
+            onClear={clearList}
             onRegenerate={generate}
             onGoPlanning={() => setTab('planning')}
             notify={notify}
