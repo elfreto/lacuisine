@@ -37,11 +37,11 @@ npm run build:single # un seul fichier HTML autonome dans dist-single/
 ## Liste de souhaits partagée
 
 Les souhaits sont partagés entre tous les appareils quand `VITE_SUPABASE_URL` et `VITE_SUPABASE_KEY` sont définis
-(voir `.env.example`, table `lacuisine_souhaits`, schéma dans `supabase/souhaits.sql`). Sans ces variables, ils restent sur l'appareil.
+(voir `.env.example`, table `lacuisine_souhaits`, schéma dans `supabase/souhaits.sql`). Sans ces variables, ils restent sur l'appareil. En production, les valeurs sont dans `.env.production` (table créée dans le projet Supabase « ferme-sibita »), donc Vercel et GitHub Pages n'ont rien à configurer.
 
 ## Mise en ligne
 
-- **Vercel** : importer le dépôt sur vercel.com (le fichier `vercel.json` règle le build). Ajouter les deux variables `VITE_SUPABASE_*` dans Settings → Environment Variables.
+- **Vercel** : importer le dépôt sur vercel.com (le fichier `vercel.json` règle le build).
 - **GitHub Pages** : le workflow `.github/workflows/pages.yml` publie `https://elfreto.github.io/lacuisine/` à chaque push sur `main`. Une seule fois : Settings → Pages → Source « GitHub Actions ».
 
 ## Format du fichier Excel

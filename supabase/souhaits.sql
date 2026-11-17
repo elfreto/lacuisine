@@ -1,4 +1,4 @@
--- Table de la liste de souhaits partagée.
+-- Table de la liste de souhaits partagée (créée dans le projet Supabase « ferme-sibita », isolée du reste).
 -- L'application n'a pas de comptes : la clé publique (anon / publishable) peut lire, ajouter, valider et supprimer.
 create table if not exists public.lacuisine_souhaits (
   id uuid primary key default gen_random_uuid(),
@@ -16,6 +16,7 @@ create table if not exists public.lacuisine_souhaits (
 );
 
 alter table public.lacuisine_souhaits enable row level security;
+grant select, insert, update, delete on public.lacuisine_souhaits to anon, authenticated;
 
 create policy "souhaits lisibles" on public.lacuisine_souhaits for select to anon, authenticated using (true);
 create policy "souhaits ajout" on public.lacuisine_souhaits for insert to anon, authenticated with check (status = 'pending');
