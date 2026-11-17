@@ -13,11 +13,12 @@ export interface ImportResult {
   rowCount: number;
 }
 
-type Column = 'recipe' | 'ingredient' | 'quantity' | 'unit' | 'category' | 'servings' | 'prepTime' | 'instructions';
+type Column = 'recipe' | 'ingredient' | 'quantity' | 'unit' | 'category' | 'servings' | 'prepTime' | 'instructions' | 'rating';
 
 const detectColumn = (header: string): Column | null => {
   const h = normalize(header);
   if (!h) return null;
+  if (h === 'note' || h.includes('etoile') || h.includes('notation')) return 'rating';
   if (h.includes('ingredient') || h === 'produit' || h === 'aliment') return 'ingredient';
   if (h.includes('recette') || h === 'plat' || h === 'nom') return 'recipe';
   if (h.includes('quantit') || h === 'qte' || h === 'qty') return 'quantity';
@@ -80,6 +81,8 @@ export const parseRecipesWorkbook = (data: ArrayBuffer): ImportResult => {
       if (!recipe.servings && servings > 0) recipe.servings = Math.round(servings);
       const prep = parseQuantity(cell(row, 'prepTime')).value;
       if (!recipe.prepTime && prep > 0) recipe.prepTime = Math.round(prep);
+      const rating = parseQuantity(cell(row, 'rating')).value;
+      if (!recipe.rating && rating >= 1 && rating <= 5) recipe.rating = Math.round(rating);
       const instr = String(cell(row, 'instructions') ?? '').trim();
       if (instr && !recipe.instructions) recipe.instructions = instr;
 

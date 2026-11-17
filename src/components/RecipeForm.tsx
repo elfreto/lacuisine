@@ -71,6 +71,7 @@ export function RecipeForm({
         unit: i.unit.trim(),
         category: i.category as Category,
       })),
+      rating: initial?.rating,
       createdAt: initial?.createdAt ?? now,
       updatedAt: now,
     });

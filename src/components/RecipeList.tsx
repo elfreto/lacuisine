@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { BookOpen, CalendarPlus, Clock, FileSpreadsheet, Pencil, Plus, Search, Sparkles, Trash2, Users } from 'lucide-react';
 import { CATEGORIES, type Recipe } from '../types';
 import { formatDuration, normalize } from '../lib/text';
-import { CategoryIcon, EmptyState } from './ui';
+import { CategoryIcon, EmptyState, StarRating } from './ui';
 
 export function RecipeList({
   recipes,
@@ -14,6 +14,7 @@ export function RecipeList({
   onEdit,
   onDelete,
   onPlan,
+  onRate,
 }: {
   recipes: Recipe[];
   plannedIds: Set<string>;
@@ -24,17 +25,19 @@ export function RecipeList({
   onEdit: (r: Recipe) => void;
   onDelete: (r: Recipe) => void;
   onPlan: (r: Recipe) => void;
+  onRate: (r: Recipe, rating: number | undefined) => void;
 }) {
   const [query, setQuery] = useState('');
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [sort, setSort] = useState<'nom' | 'note'>('nom');
 
   const filtered = useMemo(() => {
     const q = normalize(query);
     const list = q
       ? recipes.filter((r) => normalize(r.name).includes(q) || r.ingredients.some((i) => normalize(i.name).includes(q)))
       : recipes;
-    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'fr'));
-  }, [recipes, query]);
+    return [...list].sort((a, b) => (sort === 'note' ? (b.rating ?? 0) - (a.rating ?? 0) : 0) || a.name.localeCompare(b.name, 'fr'));
+  }, [recipes, query, sort]);
 
   if (!recipes.length) {
     return (
@@ -60,6 +63,10 @@ export function RecipeList({
           />
         </div>
         <div className="flex gap-2">
+          <select id="recipe-sort" className="field w-auto flex-1 sm:flex-none" value={sort} onChange={(e) => setSort(e.target.value as 'nom' | 'note')} aria-label="Trier les recettes">
+            <option value="nom">De A à Z</option>
+            <option value="note">Mieux notées</option>
+          </select>
           <button className="btn-secondary flex-1 sm:flex-none" onClick={onImport}><FileSpreadsheet size={16} /> Importer</button>
           <button className="btn-primary flex-1 sm:flex-none" onClick={onCreate}><Plus size={16} /> Nouvelle recette</button>
         </div>
@@ -88,6 +95,9 @@ export function RecipeList({
                     {cats.map((c) => <CategoryIcon key={c} category={c} size={14} />)}
                   </div>
                 </button>
+                <div className="-mt-1 px-4 pb-3">
+                  <StarRating value={r.rating} onChange={(v) => onRate(r, v)} size={18} label={`Noter ${r.name}`} />
+                </div>
                 <div className="flex items-center justify-between border-t border-line px-3 py-2">
                   {confirmId === r.id ? (
                     <div className="flex w-full items-center justify-between gap-2 text-sm">
