@@ -91,7 +91,7 @@ export function WishlistView({
             </div>
             <div>
               <label className="label" htmlFor="w-unit">Unité</label>
-              <input id="w-unit" className="field" list="wish-units" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="pièce(s)" />
+              <input id="w-unit" className="field" maxLength={30} list="wish-units" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="pièce(s)" />
               <datalist id="wish-units">{COMMON_UNITS.map((u) => <option key={u} value={u} />)}</datalist>
             </div>
           </div>
