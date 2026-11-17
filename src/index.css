@@ -1,0 +1,142 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Palette « assiette » : rouge, orange, saumon, jaune, vert sauge, beige et blanc cassé sur fond pêche ;
+   le noir de l'assiette sert d'encre et de fond en mode sombre. Les teintes « -ink » sont assombries
+   (ou éclaircies en sombre) pour garder un contraste lisible sur le texte. */
+:root {
+  --bg: 248 243 234;
+  --surface: 255 253 248;
+  --sunken: 241 233 216;
+  --ink: 28 26 25;
+  --muted: 110 98 89;
+  --line: 228 216 192;
+  --accent: 194 69 27;
+  --accent-ink: 255 255 255;
+  --accent-soft: 251 228 216;
+  --tomato: 200 38 45;
+  --peach: 243 185 160;
+  --header: 243 185 160;
+  --header-ink: 28 26 25;
+  --header-muted: 90 75 66;
+  --cream: 233 223 200;
+  --sage: 157 175 110;
+  --sage-ink: 85 101 40;
+  --sun: 234 198 19;
+  --sun-ink: 122 98 0;
+  --salmon: 225 138 114;
+  --salmon-ink: 163 67 43;
+  --orange: 239 98 50;
+  --orange-ink: 176 64 22;
+  --red: 232 54 60;
+  --red-ink: 190 34 41;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: 22 20 19;
+    --surface: 33 30 28;
+    --sunken: 27 24 23;
+    --ink: 239 239 233;
+    --muted: 179 168 155;
+    --line: 58 51 46;
+    --accent: 239 98 50;
+    --accent-ink: 26 13 6;
+    --accent-soft: 58 34 25;
+    --tomato: 240 100 106;
+    --peach: 243 185 160;
+    --header: 33 30 28;
+    --header-ink: 239 239 233;
+    --header-muted: 179 168 155;
+    --cream: 74 66 52;
+    --sage: 157 175 110;
+    --sage-ink: 185 201 138;
+    --sun: 234 198 19;
+    --sun-ink: 240 210 80;
+    --salmon: 225 138 114;
+    --salmon-ink: 240 168 148;
+    --orange: 239 98 50;
+    --orange-ink: 246 140 100;
+    --red: 232 54 60;
+    --red-ink: 245 120 124;
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: 22 20 19;
+  --surface: 33 30 28;
+  --sunken: 27 24 23;
+  --ink: 239 239 233;
+  --muted: 179 168 155;
+  --line: 58 51 46;
+  --accent: 239 98 50;
+  --accent-ink: 26 13 6;
+  --accent-soft: 58 34 25;
+  --tomato: 240 100 106;
+  --peach: 243 185 160;
+  --header: 33 30 28;
+  --header-ink: 239 239 233;
+  --header-muted: 179 168 155;
+  --cream: 74 66 52;
+  --sage: 157 175 110;
+  --sage-ink: 185 201 138;
+  --sun: 234 198 19;
+  --sun-ink: 240 210 80;
+  --salmon: 225 138 114;
+  --salmon-ink: 240 168 148;
+  --orange: 239 98 50;
+  --orange-ink: 246 140 100;
+  --red: 232 54 60;
+  --red-ink: 245 120 124;
+  color-scheme: dark;
+}
+
+html, body { min-height: 100%; }
+body {
+  @apply bg-bg text-ink font-sans antialiased;
+  font-size: 15px;
+}
+h1, h2, h3 { text-wrap: balance; }
+
+:root { --bottom-nav: calc(4.25rem + env(safe-area-inset-bottom, 0px)); }
+@media (min-width: 768px) { :root { --bottom-nav: 0px; } }
+
+.gutter {
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary { @apply btn bg-accent text-accent-ink hover:brightness-110; }
+  .btn-secondary { @apply btn border border-line bg-surface text-ink hover:bg-sunken; }
+  .btn-ghost { @apply btn text-muted hover:bg-sunken hover:text-ink; }
+  .btn-danger { @apply btn bg-tomato text-white hover:brightness-110; }
+  .icon-btn {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted transition hover:bg-sunken hover:text-ink
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted/70
+      focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/25;
+  }
+  .label { @apply mb-1.5 block text-xs font-semibold uppercase tracking-wider text-muted; }
+  .panel { @apply rounded-2xl border border-line bg-surface; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  body { background: #fff !important; color: #000 !important; }
+  .panel { border-color: #ccc !important; break-inside: avoid; }
+}
+.print-only { display: none; }
